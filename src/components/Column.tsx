@@ -3,13 +3,8 @@ import { Draggable } from 'react-beautiful-dnd';
 import { gql, useMutation } from '@apollo/client';
 import Card from './Card';
 import { Column as ColumnType } from '../types/kanban';
-import { StrictModeDroppable } from './StrictModeDroppable'; // Ensure path is correct
-import Modal from './Modal'; // Import Modal
-
-interface ColumnProps {
-  column: ColumnType;
-  index: number;
-}
+import { StrictModeDroppable } from './StrictModeDroppable';
+import Modal from './Modal';
 
 // GraphQL mutation to create a new card
 const CREATE_CARD_MUTATION = gql`
@@ -18,13 +13,11 @@ const CREATE_CARD_MUTATION = gql`
       card {
         id
         content
-        createdAt
       }
     }
   }
 `;
 
-// Existing query to refetch the boards
 const GET_BOARDS = gql`
   query GetBoards {
     boards {
@@ -40,9 +33,16 @@ const GET_BOARDS = gql`
   }
 `;
 
+interface ColumnProps {
+  column: ColumnType;
+  index: number;
+}
+
 const Column: React.FC<ColumnProps> = ({ column, index }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTask, setNewTask] = useState('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [currentCard, setCurrentCard] = useState<{ id: string; content: string } | null>(null);
   const [createCard] = useMutation(CREATE_CARD_MUTATION, {
     refetchQueries: [{ query: GET_BOARDS }],
   });
@@ -50,20 +50,41 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  const openEditModal = (card: { id: string; content: string }) => {
+    setCurrentCard(card);
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setCurrentCard(null);
+    setEditModalOpen(false);
+  };
+
   const handleCreateTask = async () => {
     if (newTask.trim()) {
       try {
         await createCard({
           variables: { content: newTask, columnId: column.id },
         });
-
-        console.log(`New task added: ${newTask}`);
-        setNewTask(''); // Clear input field after task creation
-        closeModal(); // Close modal after task creation
+        setNewTask('');
+        closeModal();
       } catch (error) {
         console.error('Error creating task:', error);
       }
     }
+  };
+
+  const handleEditTask = () => {
+    if (currentCard && currentCard.content.trim()) {
+      console.log(`Updated card: ${currentCard.content}`);
+      closeEditModal();
+    }
+  };
+
+  const handleDeleteTask = () => {
+    console.log(`Deleted card with id: ${currentCard?.id}`);
+    // Implement deletion logic here with a mutation if needed
+    closeEditModal();
   };
 
   return (
@@ -85,7 +106,11 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                   >
-                    <Card content={card.content} />
+                    <Card
+                      id={card.id}
+                      content={card.content}
+                      onEdit={() => openEditModal(card)}
+                    />
                   </div>
                 )}
               </Draggable>
@@ -117,6 +142,36 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
           >
             Add Task
+          </button>
+        </Modal>
+      )}
+
+      {editModalOpen && currentCard && (
+        <Modal onClose={closeEditModal}>
+          <h3 className="text-lg font-bold mb-4">Edit Task</h3>
+          <input
+            type="text"
+            value={currentCard.content}
+            onChange={(e) =>
+              setCurrentCard((prev) => prev && { ...prev, content: e.target.value })
+            }
+            className="w-full p-2 border rounded-md mb-4"
+            placeholder="Edit task content"
+          />
+
+          <button
+            onClick={handleEditTask}
+            className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
+          >
+            Save Changes
+          </button>
+
+          {/* Red Delete Button in the middle */}
+          <button
+            onClick={handleDeleteTask}
+            className="mt-4 w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
+          >
+            Delete Task
           </button>
         </Modal>
       )}
