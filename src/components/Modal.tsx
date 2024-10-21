@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from 'react';
 
 interface ModalProps {
   onClose: () => void;
@@ -6,9 +6,17 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ onClose, children }) => {
+  // Prevent background scrolling when the modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="relative bg-white p-6 rounded-lg shadow-lg w-96">
         {children}
         <button
           onClick={onClose}
