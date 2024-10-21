@@ -3,16 +3,9 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-d
 import LoginPage from "./pages/LoginPage";
 import Logout from "./pages/Logout";
 import Board from "./components/Board";
-import { DropResult } from "react-beautiful-dnd";
 
 const App: React.FC = () => {
   const isAuthenticated = !!localStorage.getItem("token"); // Check if JWT exists
-
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-    if (!destination) return; // Exit if no valid destination
-    console.log("Dragged from", source, "to", destination);
-  };
 
   return (
     <Router>
@@ -21,7 +14,7 @@ const App: React.FC = () => {
         <Route path="/logout" element={<Logout />} />
         <Route 
           path="/board" 
-          element={isAuthenticated ? <Board onDragEnd={onDragEnd} /> : <Navigate to="/auth" />} 
+          element={isAuthenticated ? <Board /> : <Navigate to="/auth" />} 
         />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/board" : "/auth"} />} />
       </Routes>

@@ -2,12 +2,8 @@ import React, { useEffect, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import Column from "./Column";
 import { Board as BoardType } from "../types/kanban";
-import { useQuery, gql } from "@apollo/client";
+import { useQuery, useMutation, gql } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
-
-interface BoardProps {
-  onDragEnd: (result: DropResult) => void;
-}
 
 const GET_BOARDS = gql`
   query GetBoards {
@@ -24,10 +20,25 @@ const GET_BOARDS = gql`
   }
 `;
 
-const Board: React.FC<BoardProps> = ({ onDragEnd }) => {
+const MOVE_CARD = gql`
+  mutation MoveCard($cardId: ID!, $newColumnId: ID!) {
+    moveCard(cardId: $cardId, newColumnId: $newColumnId) {
+      card {
+        id
+        content
+        column {
+          id
+        }
+      }
+    }
+  }
+`;
+
+const Board: React.FC = () => {
   const { loading, error, data, refetch } = useQuery(GET_BOARDS);
+  const [moveCard] = useMutation(MOVE_CARD);
   const [board, setBoard] = useState<BoardType | null>(null);
-  const navigate = useNavigate(); // To navigate to the logout route
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (data) {
@@ -36,8 +47,38 @@ const Board: React.FC<BoardProps> = ({ onDragEnd }) => {
   }, [data]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Clear the JWT token
-    navigate("/auth"); // Redirect to the login page
+    localStorage.removeItem("token");
+    navigate("/auth");
+  };
+
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+
+    // If no destination, exit early
+    if (!destination) return;
+
+    // If the card is dropped in the same column and position, exit early
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
+
+    try {
+      // Trigger the moveCard mutation
+      await moveCard({
+        variables: {
+          cardId: draggableId,
+          newColumnId: destination.droppableId,
+        },
+      });
+
+      // Refetch the board data to update the UI
+      refetch();
+    } catch (err) {
+      console.error("Error moving card:", err);
+    }
   };
 
   if (loading) return <p>Loading...</p>;
