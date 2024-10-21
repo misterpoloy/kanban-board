@@ -3,7 +3,7 @@ import { setContext } from '@apollo/client/link/context';
 
 // Configure the HTTP link to the GraphQL server
 const httpLink = createHttpLink({
-  uri: 'http://127.0.0.1:8000/graphql/',
+  uri: 'http://127.0.0.1:8080/graphql/',
 });
 
 // Set the Authorization header using the JWT token

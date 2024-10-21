@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .  # Build context is the current directory
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8080
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for hot-reloading
+    volumes:
+      - .:/app  # Mount your local code into the container
+      - /app/node_modules  # Prevent overwriting container's node_modules
+    networks:
+      - kanban-network
+
+networks:
+  kanban-network:
+    external: true
