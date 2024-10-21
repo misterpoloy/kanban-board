@@ -33,6 +33,25 @@ const GET_BOARDS = gql`
   }
 `;
 
+const DELETE_CARD_MUTATION = gql`
+  mutation DeleteCard($cardId: ID!) {
+    deleteCard(cardId: $cardId) {
+      success
+    }
+  }
+`;
+
+const UPDATE_CARD_MUTATION = gql`
+  mutation UpdateCard($cardId: ID!, $content: String!) {
+    updateCard(cardId: $cardId, content: $content) {
+      card {
+        id
+        content
+      }
+    }
+  }
+`;
+
 interface ColumnProps {
   column: ColumnType;
   index: number;
@@ -43,9 +62,17 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
   const [newTask, setNewTask] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentCard, setCurrentCard] = useState<{ id: string; content: string } | null>(null);
+  
+  const [deleteCard] = useMutation(DELETE_CARD_MUTATION, {
+    refetchQueries: [{ query: GET_BOARDS }],
+  });
   const [createCard] = useMutation(CREATE_CARD_MUTATION, {
     refetchQueries: [{ query: GET_BOARDS }],
   });
+  const [updateCard] = useMutation(UPDATE_CARD_MUTATION, {
+    refetchQueries: [{ query: GET_BOARDS }],
+  });
+  
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -74,17 +101,31 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
     }
   };
 
-  const handleEditTask = () => {
+  const handleEditTask = async () => {
     if (currentCard && currentCard.content.trim()) {
-      console.log(`Updated card: ${currentCard.content}`);
-      closeEditModal();
+      try {
+        await updateCard({
+          variables: {
+            cardId: currentCard.id,
+            content: currentCard.content,
+          },
+        });
+        closeEditModal(); // Cerrar el modal después de actualizar
+      } catch (error) {
+        console.error('Error updating task:', error);
+      }
     }
   };
 
-  const handleDeleteTask = () => {
-    console.log(`Deleted card with id: ${currentCard?.id}`);
-    // Implement deletion logic here with a mutation if needed
-    closeEditModal();
+  const handleDeleteTask = async () => {
+    if (currentCard) {
+      try {
+        await deleteCard({ variables: { cardId: currentCard.id } });
+        closeEditModal();
+      } catch (error) {
+        console.error('Error deleting task:', error);
+      }
+    }
   };
 
   return (
@@ -167,6 +208,35 @@ const Column: React.FC<ColumnProps> = ({ column, index }) => {
           </button>
 
           {/* Red Delete Button in the middle */}
+          <button
+            onClick={handleDeleteTask}
+            className="mt-4 w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
+          >
+            Delete Task
+          </button>
+        </Modal>
+      )}
+
+      {editModalOpen && currentCard && (
+        <Modal onClose={closeEditModal}>
+          <h3 className="text-lg font-bold mb-4">Edit Task</h3>
+          <input
+            type="text"
+            value={currentCard.content}
+            onChange={(e) =>
+              setCurrentCard((prev) => prev && { ...prev, content: e.target.value })
+            }
+            className="w-full p-2 border rounded-md mb-4"
+            placeholder="Edit task content"
+          />
+
+          <button
+            onClick={handleEditTask}
+            className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
+          >
+            Save Changes
+          </button>
+
           <button
             onClick={handleDeleteTask}
             className="mt-4 w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
