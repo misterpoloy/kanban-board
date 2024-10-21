@@ -6,6 +6,13 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Demo
+
+![Banner](./images/board.png)
+
+Note: Calls are secured by JWT Token and protected authorization routes:
+![Login](./images/login.png)
+
 ## Available Scripts
 
 In the project directory, you can run:
